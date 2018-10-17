@@ -26,9 +26,8 @@ class Normalizer():
         return (inputs - obs_mean) / obs_std
 
 ## Algorithm
-
 class Walker():
-    def __init__(self,nb_steps=1000, episode_length=2000, learning_rate=0.02, num_deltas=16, num_best_deltas=16, noise=0.03, seed=1000, env_name='BipedalWalker-v2',record_every=50, monitor_dir = None):
+    def __init__(self,nb_steps=1000, episode_length=2000, learning_rate=0.03, num_deltas=32, num_best_deltas=16, noise=0.05, seed=1, env_name='BipedalWalker-v2',record_every=15, monitor_dir = None):
         self.nb_steps = nb_steps
         self.episode_length = episode_length
         self.learning_rate = learning_rate
@@ -60,7 +59,7 @@ class Walker():
             return (self.theta + self.noise * delta).dot(input)
         elif direction == "-":
             return (self.theta - self.noise * delta).dot(input)
-    
+
     def play_episode(self, direction=None, delta=None):
         state = self.env.reset()
         done = False
@@ -75,7 +74,7 @@ class Walker():
             sum_rewards += reward
             num_plays += 1
         return sum_rewards
-        
+
     def train(self):
         for iteration in range(self.nb_steps):
             # Generate num_deltas deltas and evaluate positive and negative rewards
@@ -96,7 +95,7 @@ class Walker():
 
             # Sort the rollouts by maximum reward and select best_num_deltas rollouts
             scores = {k:max(r_pos, r_neg) for k,(r_pos,r_neg) in enumerate(zip(positive_rewards,negative_rewards))}
-            order = sorted(scores.keys(), key = lambda x:scores[x])[:self.num_best_deltas]
+            order = sorted(scores.keys(), key = lambda x:scores[x], reverse = True)[:self.num_best_deltas]
             rollouts = [(positive_rewards[k], negative_rewards[k], deltas[k]) for k in order]
 
             # Calculate step
@@ -129,5 +128,5 @@ if __name__ == '__main__':
     ENV_NAME = "BipedalWalker-v2"
     videos_dir = mkdir('.', 'videos')
     monitor_dir = mkdir(videos_dir, ENV_NAME)
-    trainer = Walker(monitor_dir=monitor_dir)
+    trainer = Walker(seed = 1000,monitor_dir=monitor_dir)
     trainer.train()
