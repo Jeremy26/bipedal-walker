@@ -27,7 +27,7 @@ class Normalizer():
 
 ## Algorithm
 class Walker():
-    def __init__(self,nb_steps=1000, episode_length=1200, learning_rate=0.03, num_deltas=16, num_best_deltas=16, noise=0.05, seed=1, env_name='BipedalWalker-v2',record_every=15, monitor_dir = None):
+    def __init__(self,nb_steps=10000, episode_length=2000, learning_rate=0.05, num_deltas=16, num_best_deltas=16, noise=0.04, seed=1, env_name='BipedalWalker-v2',record_every=25, monitor_dir = None):
         self.nb_steps = nb_steps
         self.episode_length = episode_length
         self.learning_rate = learning_rate
@@ -44,11 +44,11 @@ class Walker():
             self.env = wrappers.Monitor(self.env, monitor_dir, video_callable=should_record, force=True)
         self.input_size = self.env.observation_space.shape[0]
         self.output_size = self.env.action_space.shape[0]
-        self.episode_length = self.env.spec.timestep_limit
-        self.record_video = False
-        self.theta = np.zeros((self.output_size, self.input_size))
         self.normalizer = Normalizer(self.input_size)
-        
+        self.episode_length = self.env.spec.timestep_limit or episode_length
+        self.theta = np.zeros((self.output_size, self.input_size))
+        self.record_video = False
+
     def sample_deltas(self):
         return [np.random.randn(*self.theta.shape) for _ in range(self.num_deltas)]
     
@@ -88,7 +88,7 @@ class Walker():
                 negative_rewards[i] = self.play_episode(direction="-",delta=deltas[i])
 
             # Collect rollouts r+,r-,delta 
-            rollouts = zip(positive_rewards, negative_rewards, deltas)
+            #rollouts = zip(positive_rewards, negative_rewards, deltas)
 
             # Calculate the standard deviation of all the rewards
             sigma_rewards = np.array(positive_rewards + negative_rewards).std()
@@ -104,7 +104,7 @@ class Walker():
                 step += (pos-neg)*d
 
             # Update the weights
-            self.theta += self.learning_rate/(self.num_best_deltas*sigma_rewards*step)
+            self.theta += self.learning_rate/(self.num_best_deltas*sigma_rewards) * step
 
             # Only record video during evaluation, every n steps
             if iteration % self.record_every == 0:
@@ -128,5 +128,5 @@ if __name__ == '__main__':
     ENV_NAME = "BipedalWalker-v2"
     videos_dir = mkdir('.', 'videos')
     monitor_dir = mkdir(videos_dir, ENV_NAME)
-    trainer = Walker(seed = 1900,monitor_dir=monitor_dir)
+    trainer = Walker(seed = 1000,monitor_dir=monitor_dir)
     trainer.train()
